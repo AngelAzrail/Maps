@@ -11,7 +11,7 @@ const formatLength =  (line) => {
     return output;
 };
 
-const formatArea =  (polygon) => {
+const formatPolygonArea = (polygon) => {
     const area = getArea(polygon);
     let output;
     if (area > 10000) {
@@ -22,7 +22,19 @@ const formatArea =  (polygon) => {
     return output;
 };
 
+const formatCircleArea = (circle) => {
+    const area = Math.PI * (circle.getRadius() ** 2);
+    let output;
+    if (area > 10000) {
+        output = Math.round((area / 1000000) * 100) / 100 + ' km\xB2';
+    } else {
+        output = Math.round(area * 100) / 100 + ' m\xB2';
+    }
+    return output;
+}
+
 export {
-    formatArea,
+    formatPolygonArea,
+    formatCircleArea,
     formatLength
 }

@@ -1,18 +1,30 @@
 import {Point} from "ol/geom";
-import {formatArea, formatLength} from "./formatters/formatAreas";
+import {formatCircleArea, formatLength, formatPolygonArea} from "./formatters/formatAreas";
 import {labelStyle} from "../presets/styles/labels";
 
-const setLabels = (feature, style) => {
+const setLabels = (feature, style, labels) => {
+    if (!labels) return [style];
     const styles = [style];
     const geometry = feature.getGeometry();
     const type = geometry.getType();
     let point, label;
-    if (type === 'Polygon') {
-        point = geometry.getInteriorPoint();
-        label = formatArea(geometry);
-    } else if (type === 'LineString') {
-        point = new Point(geometry.getLastCoordinate());
-        label = formatLength(geometry);
+    switch (type) {
+        case 'LineString' : {
+            point = new Point(geometry.getLastCoordinate());
+            label = formatLength(geometry);
+            break;
+        }
+        case 'Circle' : {
+            point = new Point(geometry.getCenter());
+            label = formatCircleArea(geometry);
+            break;
+        }
+        case 'Polygon' : {
+            point = geometry.getInteriorPoint();
+            label = formatPolygonArea(geometry);
+            break;
+        }
+        default : return styles;
     }
     labelStyle.setGeometry(point);
     labelStyle.getText().setText(label);
