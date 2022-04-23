@@ -24,92 +24,7 @@ const mousePositionControl = new MousePosition({
 });
 
 const jsonObj = {
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [
-                    [
-                        [
-                            42.572265625,
-                            80.722598828043374
-                        ],
-                        [
-                            39.90234375,
-                            57.657157596582984
-                        ],
-                        [
-                            44.384765625,
-                            55.57834467218206
-                        ],
-                        [
-                            45.52734375,
-                            58.99531118795094
-                        ],
-                        [
-                            41.572265625,
-                            58.722598828043374
-                        ]
-                    ]
-                ]
-            }
-        },
-        {
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [
-                    [
-                        [45.68905413150787, 43.312250816036666],
-                        [45.689281288941864, 43.31247952198527],
-                        [45.68962932389696, 43.312296097447],
-                        [45.68940386117902, 43.312068016718506]
-                    ]
-                ]
-            }
-        },
-        {
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-                "type": "LineString",
-                "coordinates": [
-                    [
-                        58.447265625,
-                        57.89149735271034
-                    ],
-                    [
-                        63.6328125,
-                        60.88770004207789
-                    ],
-                    [
-                        55.37109374999999,
-                        61.689872200460016
-                    ]
-                ]
-            }
-        },
-        {
-            "type": "Feature",
-            "properties": {
-                "marker-color": "#7e7e7e",
-                "marker-size": "medium",
-                "marker-symbol": "circle"
-            },
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    64.16015624999999,
-                    59.28833169203345
-                ]
-            }
-        }
-    ]
-}
+    "type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[5086082.240745769,5359621.021214579],[5086107.527795651,5359656.010995173],[5086146.270869629,5359627.948818478],[5086121.172474676,5359593.054795595]]]},"properties":null},{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[5086082.240745769,5359621.021214579],[5086107.527795651,5359656.010995173],[5086146.270869629,5359627.948818478],[5086121.172474676,5359593.054795595]]]},"properties":null},{"type":"Feature","geometry":{"type":"GeometryCollection","geometries":[]},"properties":null},{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[5086619.30389774,5359752.397160985],[5086669.214776468,5359797.351373135],[5086692.29901561,5359795.643490976],[5086736.538436599,5359745.375216668],[5086737.046699986,5359725.040286972],[5086685.542188506,5359677.52864579],[5086662.777261809,5359677.591629437],[5086618.622795507,5359729.765525263],[5086619.30389774,5359752.397160985]]]},"properties":null}]}
 
 export default class Maps extends Component {
     draw;
@@ -133,7 +48,7 @@ export default class Maps extends Component {
     constructor(props) {
         super(props);
 
-        this.state = {features: [], zoom: 5, type: geometryTypes.Point, show: false};
+        this.state = {features: [], zoom: 9, type: geometryTypes.Point, show: false};
 
         // порядок слоев важен
         // слои идут по порядку отображения (сзади растр спереди вектор для отрисовки
@@ -145,6 +60,8 @@ export default class Maps extends Component {
             ],
             view: new View({
                 center: fromLonLat([45.668, 43.312]),
+                constrainOnlyCenter: true,
+                minZoom: 9,
                 zoom: this.state.zoom,
             })
 
@@ -179,6 +96,12 @@ export default class Maps extends Component {
         this.map.removeInteraction(this.select);
     }
 
+    saveFeatures() {
+        const writer = new GeoJSON();
+        const geojsonStr = writer.writeFeatures(this.source.getFeatures());
+        console.log(geojsonStr);
+    }
+
     parse(json) {
         return new GeoJSON().readFeatures(json).forEach(feature => {
             feature.setGeometry(feature.getGeometry().clone().transform('EPSG:4326', 'EPSG:3857'));
@@ -211,6 +134,7 @@ export default class Maps extends Component {
                 </select>
                 <button onClick={() => this.edit()}>Edit</button>
                 <button onClick={() => this.choose()}>Choose</button>
+                <button onClick={() => this.saveFeatures()}>Save</button>
                 <button onClick={() => this.source.clear()}>Clear Polygons</button>
             </>
         )
