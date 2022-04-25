@@ -7,6 +7,7 @@
     font-weight: lighter;
 
     background-color: #FFF;
+    border-radius: 5px;
     border: 1px solid darkgray;
     cursor: pointer;
 }
@@ -14,4 +15,11 @@
 .btn:hover {
     background-color: darkgray;
     color: white;
+}
+
+.btn-group {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    justify-content: flex-start;
 }

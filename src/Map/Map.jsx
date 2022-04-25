@@ -1,7 +1,7 @@
 import React, {Component} from "react";
 import {Map, View} from "ol";
 import TileLayer from "ol/layer/Tile";
-import {OSM} from "ol/source";
+import {BingMaps, OSM} from "ol/source";
 import VectorLayer from "ol/layer/Vector";
 import {drawInit, modifyInit, snapInit} from "../utils/map.functions";
 import {geometryTypes} from '../enums/GeometryTypes'
@@ -13,7 +13,6 @@ import {GeoJSON} from "ol/format";
 import {defaults as defaultControls, MousePosition} from "ol/control";
 import {createStringXY} from "ol/coordinate";
 import {fromLonLat} from "ol/proj";
-import {toGeometry} from "ol/render/Feature";
 import _ from "lodash";
 import Geocoder from 'ol-geocoder'
 
@@ -59,6 +58,10 @@ export default class Maps extends Component {
     snap;
     style = areaDefStyle;
 
+    osm = new TileLayer({
+        source: new OSM(),
+    });
+
     source = new VectorSource();
 
     select = new Select();
@@ -66,7 +69,7 @@ export default class Maps extends Component {
     constructor(props) {
         super(props);
 
-        this.state = {features: [], zoom: 9, type: geometryTypes.Point, show: false};
+        this.state = {features: [], zoom: 9, type: geometryTypes.Point, show: false, osmOpacity: false};
 
         // порядок слоев в мапе важен
         // слои идут по порядку отображения (сзади растр спереди вектор для отрисовки
@@ -74,20 +77,28 @@ export default class Maps extends Component {
             source: this.source,
             style: (features) => setLabels(features, this.style, this.state.zoom > 10),
         });
-        this.raster = new TileLayer({
-            source: new OSM(),
-        });
+        this.raster = [
+            new TileLayer({
+                source: new BingMaps({
+                    key: 'AjDbGJib_bkgTZ80s08ONG6NyyL9phc-ALuurf0hETgRUM3mNaEyz5a6GkTqQ9JH',
+                    imagerySet: 'AerialWithLabels'
+                }),
+                maxZoom: 19,
+            }),
+            this.osm,
+
+        ]
 
         this.map = new Map({
             controls: [mousePositionControl],
             layers: [
-                this.raster,
+                ...this.raster,
                 this.vector
             ],
             view: new View({
                 center: fromLonLat([45.668, 43.312]),
                 constrainOnlyCenter: true,
-                // minZoom: 9,
+                minZoom: 9,
                 zoom: this.state.zoom,
             })
 
@@ -167,21 +178,25 @@ export default class Maps extends Component {
     }
 
     render() {
-        const { type, show } = this.state;
+        const { type, zoom, show, osmOpacity } = this.state;
+        this.osm.setVisible(osmOpacity || zoom > 19);
         return (
             <>
-                <div id='map' style={{width: '100%', height: '90vh'}}/>
+                <div id='map' style={{width: '100%', height: '100vh'}}/>
                 <div id='mouse-position'/>
-                <select id='type' defaultValue={type} onChange={(e) => this.handleSelect(e)} hidden={!show}>
-                    <option value={geometryTypes.Point}>Point</option>
-                    <option value={geometryTypes.LineString}>LineString</option>
-                    <option value={geometryTypes.Polygon}>Polygon</option>
-                    <option value={geometryTypes.Circle}>Circle</option>
-                </select>
-                <button className='btn' onClick={() => this.edit()}>Edit</button>
-                <button className='btn' onClick={() => this.choose()}>Choose</button>
-                <button className='btn' onClick={() => this.saveFeatures()}>Save</button>
-                <button className='btn' onClick={() => this.source.clear()}>Clear Polygons</button>
+                <div className='btn-group'>
+                    <select className='btn' id='type' defaultValue={type} onChange={(e) => this.handleSelect(e)} hidden={!show}>
+                        <option value={geometryTypes.Point}>Point</option>
+                        <option value={geometryTypes.LineString}>LineString</option>
+                        <option value={geometryTypes.Polygon}>Polygon</option>
+                        <option value={geometryTypes.Circle}>Circle</option>
+                    </select>
+                    <button className='btn' onClick={() => this.edit()}>Edit</button>
+                    <button className='btn' onClick={() => this.choose()}>Choose</button>
+                    <button className='btn' onClick={() => this.setState({osmOpacity: !osmOpacity})}>Change to {osmOpacity ? 'Aerial' : 'OSM'}</button>
+                    <button className='btn' onClick={() => this.saveFeatures()}>Save</button>
+                    <button className='btn' onClick={() => this.source.clear()}>Clear Polygons</button>
+                </div>
             </>
         )
     }
