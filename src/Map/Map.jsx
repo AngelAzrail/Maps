@@ -13,6 +13,11 @@ import {GeoJSON} from "ol/format";
 import {defaults as defaultControls, MousePosition} from "ol/control";
 import {createStringXY} from "ol/coordinate";
 import {fromLonLat} from "ol/proj";
+import {toGeometry} from "ol/render/Feature";
+import _ from "lodash";
+import Geocoder from 'ol-geocoder'
+
+import 'ol-geocoder/dist/ol-geocoder.css';
 
 const mousePositionControl = new MousePosition({
     projection: 'EPSG:4326',
@@ -24,36 +29,56 @@ const mousePositionControl = new MousePosition({
 });
 
 const jsonObj = {
-    "type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[5086082.240745769,5359621.021214579],[5086107.527795651,5359656.010995173],[5086146.270869629,5359627.948818478],[5086121.172474676,5359593.054795595]]]},"properties":null},{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[5086082.240745769,5359621.021214579],[5086107.527795651,5359656.010995173],[5086146.270869629,5359627.948818478],[5086121.172474676,5359593.054795595]]]},"properties":null},{"type":"Feature","geometry":{"type":"GeometryCollection","geometries":[]},"properties":null},{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[5086619.30389774,5359752.397160985],[5086669.214776468,5359797.351373135],[5086692.29901561,5359795.643490976],[5086736.538436599,5359745.375216668],[5086737.046699986,5359725.040286972],[5086685.542188506,5359677.52864579],[5086662.777261809,5359677.591629437],[5086618.622795507,5359729.765525263],[5086619.30389774,5359752.397160985]]]},"properties":null}]}
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [45.68905413150787, 43.312250816036666],
+                        [45.689281288941864, 43.31247952198527],
+                        [45.68962932389696, 43.312296097447],
+                        [45.68940386117902, 43.312068016718506]
+                    ]
+                ]
+            }
+        },
+    ]
+}
+
+const obj2 = {"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[45.68905413150787,43.31225081603668],[45.68928128894187,43.31247952198527],[45.68962932389695,43.31229609744699],[45.68940386117902,43.31206801671851]]]},"properties":null},{"type":"Feature","geometry":{"type":"Point","coordinates":[45.619194524765,42.95064151225523]},"properties":null},{"type":"Feature","geometry":{"type":"Point","coordinates":[45.962281244277946,43.09730722575867]},"properties":null},{"type":"Feature","geometry":{"type":"LineString","coordinates":[[45.954288261413566,42.799736774024666],[46.19112731742858,43.23647098383597]]},"properties":null},{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[45.37390114593505,43.30808095373774],[45.4430699520111,43.29694698571191],[45.38970472145079,43.26765007308498],[45.37390114593505,43.30808095373774]]]},"properties":null}]}
+
 
 export default class Maps extends Component {
     draw;
     modify;
     snap;
-    map;
     style = areaDefStyle;
 
     source = new VectorSource();
 
     select = new Select();
 
-    vector = new VectorLayer({
-        source: this.source,
-        style: (features) => setLabels(features, this.style, this.state.zoom > 10),
-    });
-    raster = new TileLayer({
-        source: new OSM(),
-    });
-
     constructor(props) {
         super(props);
 
         this.state = {features: [], zoom: 9, type: geometryTypes.Point, show: false};
 
-        // порядок слоев важен
+        // порядок слоев в мапе важен
         // слои идут по порядку отображения (сзади растр спереди вектор для отрисовки
+        this.vector = new VectorLayer({
+            source: this.source,
+            style: (features) => setLabels(features, this.style, this.state.zoom > 10),
+        });
+        this.raster = new TileLayer({
+            source: new OSM(),
+        });
+
         this.map = new Map({
-            controls: defaultControls().extend([mousePositionControl]),
+            controls: [mousePositionControl],
             layers: [
                 this.raster,
                 this.vector
@@ -61,7 +86,7 @@ export default class Maps extends Component {
             view: new View({
                 center: fromLonLat([45.668, 43.312]),
                 constrainOnlyCenter: true,
-                minZoom: 9,
+                // minZoom: 9,
                 zoom: this.state.zoom,
             })
 
@@ -78,7 +103,20 @@ export default class Maps extends Component {
     init() {
         this.snap = snapInit(this.source);
         this.modify = modifyInit(this.source, this.style, this.state.zoom > 10);
-        this.parse(jsonObj);
+        this.parseToGeo(jsonObj);
+
+        const geocoder = new Geocoder('nominatim', {
+            provider: 'osm',
+            lang: 'ru-RU', //en-US, fr-FR
+            placeholder: 'Search for ...',
+            targetType: 'text-input',
+            limit: 5,
+            keepOpen: true
+        });
+        this.map.addControl(geocoder);
+        this.map.on('singleclick', (e) => {
+            console.log(e);
+        })
     }
 
     choose() {
@@ -98,12 +136,19 @@ export default class Maps extends Component {
 
     saveFeatures() {
         const writer = new GeoJSON();
-        const geojsonStr = writer.writeFeatures(this.source.getFeatures());
+        const features = _.cloneDeep(this.source.getFeatures());
+        features.forEach(feature => {
+            feature.setGeometry(feature.getGeometry().transform('EPSG:3857','EPSG:4326'));
+        });
+        const geojsonStr = writer.writeFeatures(features);
         console.log(geojsonStr);
+        features.forEach(feature => {
+            feature.setGeometry(feature.getGeometry().transform('EPSG:4326', 'EPSG:3857'));
+        });
     }
 
-    parse(json) {
-        return new GeoJSON().readFeatures(json).forEach(feature => {
+    parseToGeo(json) {
+        new GeoJSON().readFeatures(json).forEach(feature => {
             feature.setGeometry(feature.getGeometry().clone().transform('EPSG:4326', 'EPSG:3857'));
             this.source.addFeature(feature);
         })
