@@ -18,6 +18,7 @@ import _ from "lodash";
 import Geocoder from 'ol-geocoder'
 
 import 'ol-geocoder/dist/ol-geocoder.css';
+import './Map.css'
 
 const mousePositionControl = new MousePosition({
     projection: 'EPSG:4326',
@@ -177,10 +178,10 @@ export default class Maps extends Component {
                     <option value={geometryTypes.Polygon}>Polygon</option>
                     <option value={geometryTypes.Circle}>Circle</option>
                 </select>
-                <button onClick={() => this.edit()}>Edit</button>
-                <button onClick={() => this.choose()}>Choose</button>
-                <button onClick={() => this.saveFeatures()}>Save</button>
-                <button onClick={() => this.source.clear()}>Clear Polygons</button>
+                <button className='btn' onClick={() => this.edit()}>Edit</button>
+                <button className='btn' onClick={() => this.choose()}>Choose</button>
+                <button className='btn' onClick={() => this.saveFeatures()}>Save</button>
+                <button className='btn' onClick={() => this.source.clear()}>Clear Polygons</button>
             </>
         )
     }
